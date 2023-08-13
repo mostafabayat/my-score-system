@@ -5,8 +5,13 @@ services:
       context: .
     container_name: my-scoring-system
     restart: always
-    depends_on:
-      - my-scoring-system-db
+    environment:
+      TZ: Asia/Tehran
+    volumes:
+       - ./score:/app/score
+       - ./score.log:/app/score.log
+    ports:
+      - 8000:80
     networks:
       - my-scoring-system
 
