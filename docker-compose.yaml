@@ -1,0 +1,28 @@
+version: '3'
+services:
+  my-scoring-system:
+    build:
+      context: .
+    container_name: my-scoring-system
+    restart: always
+    depends_on:
+      - scoring-system-db
+    networks:
+      - my-scoring-system
+
+  my-scoring-system-db:
+    image: mysql:8.0-debian
+    container_name: my-scoring-system-db
+    restart: always
+    environment:
+       MYSQL_ROOT_PASSWORD: uRmOeH4Jz1P1AmJunYDA
+    volumes:
+       - /home/mostafa/personalProjects/My-scoring-system/dbdata:/var/lib/mysql
+
+networks:
+  my-scoring-system:
+    external: false
+
+volumes:
+  dbdata:
+    driver: local
