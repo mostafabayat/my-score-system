@@ -1,0 +1,13 @@
+#! /bin/bash
+
+if [ $1 == "get" ]; then
+  curl localhost:8000
+else
+  curl localhost:8000/$1/$2 --data "{\"reason\":\"$3\"}" -H 'Content-Type: application/json'
+fi
+
+# cp mosi-score ~/.local/bin/mosi-score
+# mosi-score get
+# mosi-score increase 2 "wake up early"
+# mosi-score decrease 2 "lack of planning"
+# mosi-score spend 2 "buy phone"

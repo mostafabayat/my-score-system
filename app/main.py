@@ -20,22 +20,24 @@ def log(reason, old_score, dec_or_inc, score):
 
 
 @app.get("/")
+@app.get("/get")
 async def root():
     return {"score": app.score}
 
-@app.post("/inc/{score_to_increase}")
-async def inc(request: Request, score_to_increase):
+@app.post("/increase/{score_to_increase}")
+async def increase(request: Request, score_to_increase):
     req_body = await request.json()
-    log(req_body["reason"], app.score, "increase", int(score_to_increase))
+    log(req_body["reason"], app.score, request.url.path.split("/")[1], int(score_to_increase))
     app.score += int(score_to_increase)
     with open('score', 'w+') as score_file:
         score_file.write(str(app.score))
     return {"score": app.score}
 
-@app.post("/dec/{score_to_decrease}")
-async def inc(request: Request, score_to_decrease):
+@app.post("/spend/{score_to_decrease}")
+@app.post("/decrease/{score_to_decrease}")
+async def decrease(request: Request, score_to_decrease):
     req_body = await request.json()
-    log(req_body["reason"], app.score, "decrease", int(score_to_decrease))
+    log(req_body["reason"], app.score, request.url.path.split("/")[1], int(score_to_decrease))
     app.score -= int(score_to_decrease)
     with open('score', 'w+') as score_file:
         score_file.write(str(app.score))
