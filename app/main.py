@@ -1,44 +1,67 @@
 from fastapi import Request, FastAPI
 import jdatetime
+import time
+
+import schema
+from schema import Prize, Reward, Penalty
+import session
 
 app = FastAPI()
-app.score = 0
 
-with open('score', 'r+') as score_file:
-    app.score = int(score_file.read())
+def get_current_score():
+    achieved_rewards = sum(reward.score for reward in session.get_achieved(Reward))
+    achieved_prizes = sum(prize.score for prize in session.get_achieved(Prize))
+    achieved_penalties = sum(penalty.score for penalty in session.get_achieved(Penalty))
+    return achieved_rewards - achieved_prizes - achieved_penalties
 
-def log(reason, old_score, dec_or_inc, score):
-    log = dict()
-    log["date"] = jdatetime.datetime.now().isoformat()
-    log["type"] = dec_or_inc
-    log["score"] = score
-    log["old_score"] = old_score
-    log["new_score"] = old_score + score if dec_or_inc == "increase" else old_score - score
-    log["reason"] = reason
-    with open('score.log', 'a+') as score_log:
-        score_log.write(str(log) + '\n')
-
+session.create_tables()
 
 @app.get("/")
 @app.get("/get")
 async def root():
-    return {"score": app.score}
+    return {"score": get_current_score()}
 
-@app.post("/increase/{score_to_increase}")
-async def increase(request: Request, score_to_increase):
+@app.put("/{score_object}")
+async def create_score_object(request: Request, score_object: str):
     req_body = await request.json()
-    log(req_body["reason"], app.score, request.url.path.split("/")[1], int(score_to_increase))
-    app.score += int(score_to_increase)
-    with open('score', 'w+') as score_file:
-        score_file.write(str(app.score))
-    return {"score": app.score}
+    title = req_body["title"]
+    score = int(req_body["score"])
+    match score_object:
+        case "reward":
+            reward = Reward(title=title, score=score, creation_date=int(time.time()))
+            session.insert(reward)
+        case "prize":
+            prize = Prize(title=title, score=score, creation_date=int(time.time()))
+            session.insert(prize)
+        case "penalty":
+            penalty = Penalty(title=title, score=score, creation_date=int(time.time()))
+            session.insert(penalty)
+        case _:
+            raise HTTPException(status_code=400, detail="accepted types are reward, prize, penalty!")
+    return {"result": "ok!"}
 
-@app.post("/spend/{score_to_decrease}")
-@app.post("/decrease/{score_to_decrease}")
-async def decrease(request: Request, score_to_decrease):
-    req_body = await request.json()
-    log(req_body["reason"], app.score, request.url.path.split("/")[1], int(score_to_decrease))
-    app.score -= int(score_to_decrease)
-    with open('score', 'w+') as score_file:
-        score_file.write(str(app.score))
-    return {"score": app.score}
+@app.get("/{score_object}")
+async def create_score_object(request: Request, score_object: str):
+    match score_object:
+        case "reward":
+            output = [{key: value for key, value in reward.__dict__.items() if key in ["id", "title", "score"]} for reward in session.get_unachieved(Reward)]
+        case "prize":
+            output = [{key: value for key, value in prize.__dict__.items() if key in ["id", "title", "score"]} for prize in session.get_unachieved(Prize)]
+        case "penalty":
+            output = [{key: value for key, value in penalty.__dict__.items() if key in ["id", "title", "score"]} for penalty in session.get_unachieved(Penalty)]
+        case _:
+            raise HTTPException(status_code=400, detail="accepted types are reward, prize, penalty!")
+    return output
+
+@app.post("/achieve/{score_object}/{id}")
+async def decrease(request: Request, score_object: str, id: int):
+    match score_object:
+        case "reward":
+            session.achieve(Reward, id, int(time.time()))
+        case "prize":
+            session.achieve(Prize, id, int(time.time()))
+        case "penalty":
+            session.achieve(Penalty, id, int(time.time()))
+        case _:
+            raise HTTPException(status_code=400, detail="accepted types are reward, prize, penalty!")
+    return {"result": "achieved!"}

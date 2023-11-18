@@ -1,13 +1,21 @@
 #! /bin/bash
+ACTION=$1
+SCORE_OBJECT=$2
+TITLE=$3
+SCORE=$4
+ID=$3
 
-if [ $1 == "get" ]; then
-  curl localhost:8000
-else
-  curl localhost:8000/$1/$2 --data "{\"reason\":\"$3\"}" -H 'Content-Type: application/json'
-fi
-
-# cp mosi-score ~/.local/bin/mosi-score
-# mosi-score get
-# mosi-score increase 2 "wake up early"
-# mosi-score decrease 2 "lack of planning"
-# mosi-score spend 2 "buy phone"
+case $ACTION in
+  "get")
+    curl localhost:8000/$SCORE_OBJECT -s | jq .
+    ;;
+  "create")
+    curl -XPUT localhost:8000/$SCORE_OBJECT --data "{\"title\":\"$3\", \"score\": \"$4\"}" -H 'Content-Type: application/json'
+    ;;
+  "achieve")
+    curl -XPOST localhost:8000/achieve/$SCORE_OBJECT/$3
+    ;;
+  *)
+    echo "Gomsho"
+    ;;
+esac
